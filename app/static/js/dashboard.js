@@ -1,0 +1,2 @@
+const palette = ['#ec6a4e', '#f3b85c', '#5c9b8c', '#6686c4', '#9a7bb5', '#d6d1c4'];
+if (document.getElementById('spendingChart')) new Chart(document.getElementById('spendingChart'), {type:'doughnut', data:{labels:Object.keys(window.expenseData), datasets:[{data:Object.values(window.expenseData), backgroundColor:palette, borderWidth:0, hoverOffset:8}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'72%', plugins:{legend:{position:'right', labels:{usePointStyle:true, padding:18, font:{family:'DM Sans'}}}}}});

@@ -1,8 +1,9 @@
 import csv
 import io
+from pathlib import Path
 from datetime import date, datetime
 
-from flask import Blueprint, flash, jsonify, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, jsonify, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -11,6 +12,17 @@ from app.services.analytics import summarize
 from app.services.categorizer import categorize
 
 main_bp = Blueprint("main", __name__)
+AVATAR_EMOJIS = {"sparkles", "briefcase", "rocket", "sun", "leaf", "coffee"}
+
+
+def avatar_url(user):
+    if not user.avatar_filename:
+        return None
+    return url_for("main.avatar_file", filename=user.avatar_filename)
+
+
+def avatar_emoji(user):
+    return user.avatar_emoji if user.avatar_emoji in AVATAR_EMOJIS else None
 
 
 def dashboard_data():
@@ -34,7 +46,15 @@ def landing():
 @main_bp.get("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", data=dashboard_data(), analytics=summarize(current_user.id), active="dashboard")
+    return render_template("dashboard.html", data=dashboard_data(), analytics=summarize(current_user.id), avatar_url=avatar_url(current_user), avatar_emoji=avatar_emoji(current_user), active="dashboard")
+
+
+@main_bp.get("/uploads/avatars/<path:filename>")
+@login_required
+def avatar_file(filename):
+    from flask import send_from_directory
+
+    return send_from_directory(Path(current_app.instance_path) / "uploads" / "avatars", filename)
 
 
 @main_bp.route("/transactions", methods=["GET", "POST"])
@@ -151,14 +171,19 @@ def profile():
         current_user.name = request.form.get("name", current_user.name).strip() or current_user.name
         current_password = request.form.get("current_password", "")
         new_password = request.form.get("new_password", "")
+        selected_emoji = request.form.get("avatar_emoji", "").strip()
+        if selected_emoji and selected_emoji not in AVATAR_EMOJIS:
+            flash("Choose one of the available avatar styles.", "danger")
+            return render_template("profile.html", avatar_url=avatar_url(current_user), avatar_emoji=avatar_emoji(current_user), avatar_options=AVATAR_EMOJIS, active="profile")
+        current_user.avatar_emoji = selected_emoji or None
         if new_password:
             if not current_user.check_password(current_password) or len(new_password) < 8:
                 flash("Current password is incorrect or the new password is too short.", "danger")
-                return render_template("profile.html", active="profile")
+                return render_template("profile.html", avatar_url=avatar_url(current_user), avatar_emoji=avatar_emoji(current_user), avatar_options=AVATAR_EMOJIS, active="profile")
             current_user.set_password(new_password)
         db.session.commit()
         flash("Profile updated.", "success")
-    return render_template("profile.html", active="profile")
+    return render_template("profile.html", avatar_url=avatar_url(current_user), avatar_emoji=avatar_emoji(current_user), avatar_options=AVATAR_EMOJIS, active="profile")
 
 
 @main_bp.get("/settings")

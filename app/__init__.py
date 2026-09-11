@@ -3,6 +3,7 @@ from pathlib import Path
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect, text
 
 from config import Config
 
@@ -29,6 +30,11 @@ def create_app(config_class=Config):
     app.register_blueprint(api_bp)
     with app.app_context():
         db.create_all()
+        user_columns = {column["name"] for column in inspect(db.engine).get_columns("user")}
+        missing_columns = [column for column in ("avatar_filename", "avatar_emoji") if column not in user_columns]
+        for column in missing_columns:
+            with db.engine.begin() as connection:
+                connection.execute(text(f"ALTER TABLE user ADD COLUMN {column} VARCHAR(255)"))
         from app.services.seed import seed_demo_data
         seed_demo_data()
 

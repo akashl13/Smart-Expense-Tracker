@@ -11,6 +11,8 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    avatar_filename = db.Column(db.String(255), nullable=True)
+    avatar_emoji = db.Column(db.String(16), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     transactions = db.relationship("Transaction", backref="user", lazy=True, cascade="all, delete-orphan")
     budgets = db.relationship("Budget", backref="user", lazy=True, cascade="all, delete-orphan")
